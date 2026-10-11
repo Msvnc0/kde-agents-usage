@@ -28,7 +28,7 @@ msgid "Refresh"
 msgstr ""
 
 msgid ""
-"From local Claude Code and Codex logs; claude.ai chats are not included."
+"From local Claude Code and Codex logs plus the account-wide Z.ai usage; claude.ai chats are not included."
 msgstr ""
 
 msgid "Refresh failed"
@@ -180,6 +180,9 @@ msgid "Claude: %1"
 msgstr ""
 
 msgid "Codex: %1"
+msgstr ""
+
+msgid "Z.ai: %1"
 msgstr ""
 
 msgid "Input: %1"

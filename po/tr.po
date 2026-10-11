@@ -16,8 +16,8 @@ msgstr "Tokenlar"
 msgid "Refresh"
 msgstr "Yenile"
 
-msgid "From local Claude Code and Codex logs; claude.ai chats are not included."
-msgstr "Yerel Claude Code ve Codex kayıtlarından; claude.ai sohbetleri dahil değil."
+msgid "From local Claude Code and Codex logs plus the account-wide Z.ai usage; claude.ai chats are not included."
+msgstr "Yerel Claude Code ve Codex kayıtları ile hesap geneli Z.ai kullanımından; claude.ai sohbetleri dahil değil."
 
 msgid "Refresh failed"
 msgstr "Yenileme başarısız"
@@ -167,6 +167,9 @@ msgstr "Claude: %1"
 
 msgid "Codex: %1"
 msgstr "Codex: %1"
+
+msgid "Z.ai: %1"
+msgstr "Z.ai: %1"
 
 msgid "Input: %1"
 msgstr "Girdi: %1"
