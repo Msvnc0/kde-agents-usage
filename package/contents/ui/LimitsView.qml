@@ -89,9 +89,13 @@ ColumnLayout {
         case "codex_save_failed":
             return i18n("Could not save the renewed Codex session (%1), codex login may be needed", detail || "");
         case "opencode_no_login":
-            return i18n("OpenCode API key not found, sign in with opencode auth login");
+            return detail ? i18n("OpenCode API key for %1 not found, sign in with opencode auth login", detail)
+                          : i18n("OpenCode API key not found, sign in with opencode auth login");
         case "opencode_invalid":
-            return i18n("OpenCode API key is invalid, sign in again with opencode auth login");
+            return detail ? i18n("The %1 API key is invalid, sign in again with opencode auth login", detail)
+                          : i18n("OpenCode API key is invalid, sign in again with opencode auth login");
+        case "bad_response":
+            return i18n("The service answered with an unreadable response");
         case "http":
             return i18n("HTTP error %1", detail || "");
         case "network":

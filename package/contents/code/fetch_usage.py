@@ -71,7 +71,13 @@ def http_json(url, headers, body=None):
     if data:
         req.add_header("Content-Type", "application/json")
     with OPENER.open(req, timeout=TIMEOUT) as resp:
-        return json.load(resp)
+        try:
+            return json.load(resp)
+        except ValueError:
+            # A 200 body that is not JSON (a challenge page, an empty body)
+            # is not a credentials problem, which is what run() would
+            # otherwise report for the ValueError this raises.
+            raise FetchError("bad_response")
 
 
 def iso_from_epoch(seconds):
@@ -284,15 +290,17 @@ def load_opencode_auth():
         raise FetchError("opencode_no_login")
 
 
-def opencode_key(auth, provider):
+def opencode_key(auth, provider, label):
     try:
         return auth[provider]["key"]
     except (KeyError, TypeError):
-        raise FetchError("opencode_no_login")
+        # The label names the plan in the error the UI shows, since both
+        # keys live in the same file.
+        raise FetchError("opencode_no_login", label)
 
 
 def fetch_zai():
-    key = opencode_key(load_opencode_auth(), "zai-coding-plan")
+    key = opencode_key(load_opencode_auth(), "zai-coding-plan", "Z.ai GLM")
     try:
         # An internal monitor endpoint the Z.ai console itself uses; not in
         # the official docs, so parse defensively and never assume fields.
@@ -304,15 +312,23 @@ def fetch_zai():
         })
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):
-            raise FetchError("opencode_invalid")
+            raise FetchError("opencode_invalid", "Z.ai GLM")
         raise FetchError("http", str(e.code))
+
+    # A 200 body can still carry a failure envelope; without this check an
+    # auth error would silently replace the cached numbers with empty ones.
+    if data.get("success") is False or data.get("code") not in (200, None):
+        if data.get("code") in (401, 403):
+            raise FetchError("opencode_invalid", "Z.ai GLM")
+        raise FetchError("http", str(data.get("code")))
 
     payload = data.get("data") or {}
     windows = []
     for lim in payload.get("limits") or []:
         # TOKENS_LIMIT unit 3 is the 5-hour quota, unit 6 the weekly quota
         # (a 7-day cycle restarting at order time). TIME_LIMIT is the separate
-        # monthly quota of the MCP tools, deliberately not shown.
+        # monthly quota of the MCP tools, deliberately not shown. "percentage"
+        # is the used share — the console meter draws it that way.
         unit = lim.get("unit")
         if lim.get("type") != "TOKENS_LIMIT" or unit not in (3, 6) or lim.get("percentage") is None:
             continue
@@ -327,7 +343,7 @@ def fetch_zai():
 
 
 def fetch_opencode_go():
-    token = opencode_key(load_opencode_auth(), "opencode-go")
+    token = opencode_key(load_opencode_auth(), "opencode-go", "OpenCode Go")
     try:
         data = http_json(OPENCODE_GO_USAGE_URL, {
             "Authorization": "Bearer " + token,
@@ -336,7 +352,7 @@ def fetch_opencode_go():
         })
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):
-            raise FetchError("opencode_invalid")
+            raise FetchError("opencode_invalid", "OpenCode Go")
         raise FetchError("http", str(e.code))
 
     usage = data.get("usage") or {}
@@ -345,7 +361,12 @@ def fetch_opencode_go():
         w = usage.get(kind)
         if not w or w.get("percent") is None:
             continue
-        windows.append(window(wkey, w["percent"], w.get("resetsAt")))
+        resets = w.get("resetsAt")
+        # Normalise the API's trailing "Z": datetime.fromisoformat in
+        # expire_window only accepts it from Python 3.11 on.
+        if resets and resets.endswith("Z"):
+            resets = resets[:-1] + "+00:00"
+        windows.append(window(wkey, w["percent"], resets))
     windows.sort(key=lambda w: w["key"] != "session")
 
     # The endpoint reports no plan name, so no badge is shown.

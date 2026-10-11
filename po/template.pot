@@ -75,7 +75,16 @@ msgstr ""
 msgid "OpenCode API key not found, sign in with opencode auth login"
 msgstr ""
 
+msgid "OpenCode API key for %1 not found, sign in with opencode auth login"
+msgstr ""
+
 msgid "OpenCode API key is invalid, sign in again with opencode auth login"
+msgstr ""
+
+msgid "The %1 API key is invalid, sign in again with opencode auth login"
+msgstr ""
+
+msgid "The service answered with an unreadable response"
 msgstr ""
 
 msgid "HTTP error %1"
