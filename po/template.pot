@@ -72,6 +72,12 @@ msgid ""
 "Could not save the renewed Codex session (%1), codex login may be needed"
 msgstr ""
 
+msgid "OpenCode API key not found, sign in with opencode auth login"
+msgstr ""
+
+msgid "OpenCode API key is invalid, sign in again with opencode auth login"
+msgstr ""
+
 msgid "HTTP error %1"
 msgstr ""
 
