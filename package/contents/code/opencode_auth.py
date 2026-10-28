@@ -25,8 +25,11 @@ def load():
     try:
         with open(os.path.join(_base(), "opencode", "auth.json")) as f:
             loaded = json.load(f)
+        # Values can be any JSON type; callers do .get("key"), so keep
+        # only dict entries and let a bare "sk-..." string mean "not
+        # logged in" instead of an AttributeError.
         if isinstance(loaded, dict):
-            auth = loaded
+            auth = {k: v for k, v in loaded.items() if isinstance(v, dict)}
     except (OSError, ValueError):
         pass
     # Opened read-only: the CLI holds the database in WAL mode and keeps
