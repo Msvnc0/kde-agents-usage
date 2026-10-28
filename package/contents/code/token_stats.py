@@ -34,6 +34,7 @@ from datetime import date, datetime, timedelta, timezone
 # The widget runs this with python3 -I, which leaves the script's own
 # directory off sys.path.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import opencode_auth  # noqa: E402
 import prices  # noqa: E402
 
 HOME = os.path.expanduser("~")
@@ -327,13 +328,7 @@ def fetch_zai_usage():
     The server rejects ranges past about a month, so the retention window is
     walked in 30-day chunks whose bucket labels cannot overlap.
     """
-    key = None
-    try:
-        base = os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local", "share")
-        with open(os.path.join(base, "opencode", "auth.json")) as f:
-            key = (json.load(f).get("zai-coding-plan") or {}).get("key")
-    except (OSError, ValueError, AttributeError):
-        pass
+    key = (opencode_auth.load().get("zai-coding-plan") or {}).get("key")
     if not key:
         return None
     end = datetime.now(UTC8)

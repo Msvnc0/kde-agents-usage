@@ -19,7 +19,7 @@ import base64
 import fcntl
 import json
 import os
-import sqlite3
+import sys
 import tempfile
 import time
 import urllib.error
@@ -27,16 +27,15 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
+# The widget runs this with python3 -I, which leaves the script's own
+# directory off sys.path.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import opencode_auth  # noqa: E402
+
 HOME = os.path.expanduser("~")
 CLAUDE_CREDS = os.path.join(HOME, ".claude", ".credentials.json")
 CODEX_HOME = os.environ.get("CODEX_HOME") or os.path.join(HOME, ".codex")
 CODEX_AUTH = os.path.join(CODEX_HOME, "auth.json")
-OPENCODE_AUTH = os.path.join(
-    os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local", "share"),
-    "opencode", "auth.json")
-OPENCODE_DB = os.path.join(
-    os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local", "share"),
-    "opencode", "opencode.db")
 CACHE_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.join(HOME, ".cache"), "agents-usage")
 CACHE_FILE = os.path.join(CACHE_DIR, "limits-v2.json")
 
@@ -287,30 +286,7 @@ def fetch_codex():
 
 
 def load_opencode_auth():
-    try:
-        with open(OPENCODE_AUTH) as f:
-            auth = json.load(f)
-    except (OSError, ValueError):
-        auth = {}
-    # Since v2 OpenCode keeps its credentials in opencode.db and a re-login
-    # no longer touches auth.json, so a fresh key only lands there and the
-    # file entry goes stale. The db entry wins where both exist; the file
-    # alone still covers a v1 install.
-    try:
-        con = sqlite3.connect(f"file:{OPENCODE_DB}?mode=ro", uri=True, timeout=5)
-        try:
-            for integration, value in con.execute(
-                    "SELECT integration_id, value FROM credential"):
-                try:
-                    entry = json.loads(value)
-                except (TypeError, ValueError):
-                    continue
-                if isinstance(entry, dict) and isinstance(entry.get("key"), str):
-                    auth[integration] = entry
-        finally:
-            con.close()
-    except (OSError, sqlite3.Error):
-        pass
+    auth = opencode_auth.load()
     if not auth:
         raise FetchError("opencode_no_login")
     return auth
@@ -320,8 +296,7 @@ def opencode_key(auth, provider, label):
     try:
         return auth[provider]["key"]
     except (KeyError, TypeError):
-        # The label names the plan in the error the UI shows, since both
-        # keys live in the same file.
+        # The label names the plan in the error the UI shows.
         raise FetchError("opencode_no_login", label)
 
 
