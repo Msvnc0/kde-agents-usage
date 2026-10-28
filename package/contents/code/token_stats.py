@@ -317,9 +317,16 @@ def _zai_window(key, start, end):
     with urllib.request.urlopen(req, timeout=15) as resp:
         data = json.load(resp)
     # Failures ride in a 200 envelope (M5-style): check it, not the status.
-    if not isinstance(data, dict) or data.get("code") != 200 or data.get("success") is not True:
+    # json.load yields whatever the endpoint sends, so every .get must come
+    # after its isinstance check.
+    if not isinstance(data, dict):
+        raise ValueError("zai usage envelope: %r" % (data,))
+    if data.get("code") != 200 or data.get("success") is not True:
         raise ValueError("zai usage envelope: %s" % (data.get("msg"),))
-    return data.get("data") or {}
+    body = data.get("data") or {}
+    if not isinstance(body, dict):
+        raise ValueError("zai usage data: %r" % (body,))
+    return body
 
 
 def fetch_zai_usage():
@@ -346,6 +353,8 @@ def fetch_zai_usage():
             if day and total:
                 days[day] = days.get(day, 0) + total
         for m in body.get("modelDataList") or []:
+            if not isinstance(m, dict):
+                continue
             name = m.get("modelName")
             if not name:
                 continue
@@ -373,7 +382,9 @@ def refresh_zai(cache, today):
         return
     try:
         result = fetch_zai_usage()
-    except (OSError, ValueError, urllib.error.URLError):
+    # TypeError/AttributeError: the undocumented API sent a shape this
+    # parser does not assume; like any failed fetch, keep the previous data.
+    except (OSError, ValueError, urllib.error.URLError, TypeError, AttributeError):
         return
     if not result:
         return
